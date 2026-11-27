@@ -3,3 +3,6 @@
 /dist/
 *.test
 coverage.out
+
+# Local AI task handoff state
+.agent_task_state.md
