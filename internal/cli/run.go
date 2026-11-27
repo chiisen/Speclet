@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -19,7 +20,7 @@ const englishHelp = `Speclet - local-first specification workflow
 Usage:
   speclet init [PATH]
   speclet change new <name>
-  speclet change list [--names-only]
+  speclet change list [--names-only | --json]
   speclet change show <name>
   speclet task done <change> <task-id>
   speclet task undone <change> <task-id>
@@ -30,6 +31,7 @@ Usage:
   speclet help
 
 Use --names-only to print one active change name per line without task counts.
+Use --json to print active change summaries as a JSON array.
 Changes use Markdown proposal.md, tasks.md, and specs/<capability>/spec.md files.
 Archive requires every task to be complete and every delta to be valid.
 `
@@ -196,13 +198,29 @@ func runChange(args []string, stdout, stderr io.Writer, cwd, locale string) int 
 		_, _ = fmt.Fprintf(stdout, i18n.Text(locale, "Created change %q.")+"\n", args[1])
 		return 0
 	case "list":
-		namesOnly := len(args) == 2 && args[1] == "--names-only"
-		if len(args) != 1 && !namesOnly {
-			return fail(stderr, locale, "usage: speclet change list [--names-only]")
+		namesOnly, jsonOutput := false, false
+		for _, arg := range args[1:] {
+			switch arg {
+			case "--names-only":
+				namesOnly = true
+			case "--json":
+				jsonOutput = true
+			default:
+				return fail(stderr, locale, "usage: speclet change list [--names-only | --json]")
+			}
+		}
+		if len(args) > 2 || (namesOnly && jsonOutput) {
+			return fail(stderr, locale, "use either --json or --names-only, not both; usage: speclet change list [--names-only | --json]")
 		}
 		summaries, err := change.List(root)
 		if err != nil {
 			return failError(stderr, locale, i18n.Errorf("list changes: %w", err))
+		}
+		if jsonOutput {
+			if err := json.NewEncoder(stdout).Encode(summaries); err != nil {
+				return failError(stderr, locale, i18n.Errorf("write change list JSON: %w", err))
+			}
+			return 0
 		}
 		if len(summaries) == 0 && !namesOnly {
 			_, _ = fmt.Fprintln(stdout, i18n.Text(locale, "No active changes."))

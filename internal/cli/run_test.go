@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -41,6 +42,16 @@ func TestRunRejectsInvalidCommandsOnStderr(t *testing.T) {
 		if stdout.Len() != 0 || stderr.Len() == 0 {
 			t.Errorf("Run(%v): stdout = %q, stderr = %q; want error on stderr only", args, stdout.String(), stderr.String())
 		}
+	}
+}
+
+func TestRunHelpDocumentsJSONChangeList(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	if code := Run([]string{"help"}, &stdout, &stderr, t.TempDir()); code != 0 {
+		t.Fatalf("help = %d, stderr = %q", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "--json") || stderr.Len() != 0 {
+		t.Fatalf("help output = %q, stderr = %q; want --json on stdout", stdout.String(), stderr.String())
 	}
 }
 
@@ -135,6 +146,98 @@ func TestRunChangeListNamesOnly(t *testing.T) {
 			}
 			if code != 0 || stdout.String() != tc.want || stderr.Len() != 0 {
 				t.Fatalf("code = %d, stdout = %q, stderr = %q; want success with stdout %q", code, stdout.String(), stderr.String(), tc.want)
+			}
+		})
+	}
+}
+
+func TestRunChangeListJSON(t *testing.T) {
+	type summary struct {
+		Name  string `json:"name"`
+		Done  int    `json:"done"`
+		Total int    `json:"total"`
+	}
+	for _, tc := range []struct {
+		name      string
+		changes   map[string]string
+		args      []string
+		want      []summary
+		wantError bool
+		listError bool
+	}{
+		{name: "empty list", args: []string{"--json"}, want: []summary{}},
+		{
+			name: "names with spaces and unicode use task counter",
+			args: []string{"--json"},
+			changes: map[string]string{
+				"payment checkout": "- [x] T001 done\n- [ ] T002 todo\n- [X] T003 also done\n",
+				"付款 甲":             "- [ ] T001 待辦\n",
+			},
+			want: []summary{
+				{Name: "payment checkout", Done: 2, Total: 3},
+				{Name: "付款 甲", Done: 0, Total: 1},
+			},
+		},
+		{name: "conflicts with names only", args: []string{"--json", "--names-only"}, wantError: true},
+		{name: "unsupported argument", args: []string{"--unknown"}, wantError: true},
+		{name: "invalid task file is an error", args: []string{"--json"}, changes: map[string]string{"broken": "  - [ ] T001 nested\n"}, listError: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cwd := t.TempDir()
+			var stdout, stderr bytes.Buffer
+			if code := Run([]string{"init"}, &stdout, &stderr, cwd); code != 0 {
+				t.Fatalf("init = %d, stderr = %q", code, stderr.String())
+			}
+			for name, tasks := range tc.changes {
+				if code := Run([]string{"change", "new", name}, &stdout, &stderr, cwd); code != 0 {
+					t.Fatalf("change new %q = %d, stderr = %q", name, code, stderr.String())
+				}
+				if err := os.WriteFile(filepath.Join(cwd, "speclet", "changes", name, "tasks.md"), []byte(tasks), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			stdout.Reset()
+			stderr.Reset()
+			code := Run(append([]string{"change", "list"}, tc.args...), &stdout, &stderr, cwd)
+			if tc.listError {
+				if code == 0 || stdout.Len() != 0 || stderr.Len() == 0 {
+					t.Fatalf("code = %d, stdout = %q, stderr = %q; want task error on stderr and no stdout", code, stdout.String(), stderr.String())
+				}
+				return
+			}
+			if tc.wantError {
+				if code == 0 || stdout.Len() != 0 || !strings.Contains(stderr.String(), "usage: speclet change list") {
+					t.Fatalf("code = %d, stdout = %q, stderr = %q; want usage on stderr and no stdout", code, stdout.String(), stderr.String())
+				}
+				return
+			}
+			if code != 0 || stderr.Len() != 0 {
+				t.Fatalf("code = %d, stdout = %q, stderr = %q", code, stdout.String(), stderr.String())
+			}
+			if len(tc.want) == 0 && stdout.String() != "[]\n" {
+				t.Fatalf("empty JSON output = %q, want [] followed by newline", stdout.String())
+			}
+			var got []summary
+			if err := json.Unmarshal(stdout.Bytes(), &got); err != nil {
+				t.Fatalf("stdout is not JSON: %q (%v)", stdout.String(), err)
+			}
+			if len(tc.want) > 0 {
+				for _, key := range []string{`"name":`, `"done":`, `"total":`} {
+					if !strings.Contains(stdout.String(), key) {
+						t.Errorf("JSON output %q is missing lower-camel-case field %s", stdout.String(), key)
+					}
+				}
+				if strings.Contains(stdout.String(), `"Name":`) || strings.Contains(stdout.String(), `"Done":`) || strings.Contains(stdout.String(), `"Total":`) {
+					t.Errorf("JSON output uses non-lower-camel-case keys: %q", stdout.String())
+				}
+			}
+			if got == nil || len(got) != len(tc.want) {
+				t.Fatalf("JSON summaries = %#v, want %#v", got, tc.want)
+			}
+			for i := range got {
+				if got[i] != tc.want[i] {
+					t.Errorf("summary[%d] = %#v, want %#v", i, got[i], tc.want[i])
+				}
 			}
 		})
 	}

@@ -1,0 +1,4 @@
+- [x] T001 Add and test the machine-readable `change list --json` output without changing existing list modes.
+- [x] T002 Add a read-only Herdr popup mod with project tracking and distinct initialization, CLI, and output error states.
+- [x] T003 Document the optional Herdr integration, installation, and limitations.
+- [x] T004 Run Go and Node tests, formatting/lint checks, inspect the diff, and record actual Herdr UI verification status.

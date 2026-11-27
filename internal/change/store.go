@@ -13,9 +13,9 @@ import (
 )
 
 type Summary struct {
-	Name  string
-	Done  int
-	Total int
+	Name  string `json:"name"`
+	Done  int    `json:"done"`
+	Total int    `json:"total"`
 }
 
 type Detail struct {
