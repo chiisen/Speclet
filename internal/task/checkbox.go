@@ -2,12 +2,13 @@ package task
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/chiisen/speclet/internal/i18n"
 )
 
 var checkboxLine = regexp.MustCompile(`^([ \t]*)[-*+] \[([ xX])\](?:[ \t]|$)`)
@@ -16,7 +17,7 @@ var taskIDLine = regexp.MustCompile(`^[-*+] \[[ xX]\] ([^ \t]+)(?:[ \t]+.*)?$`)
 // Count returns completed and total flat checkboxes in a task document.
 func Count(src []byte) (done, total int, err error) {
 	if !utf8.Valid(src) {
-		return 0, 0, fmt.Errorf("tasks document is not valid UTF-8")
+		return 0, 0, i18n.Errorf("tasks document is not valid UTF-8")
 	}
 	var fenceChar byte
 	fenceLength := 0
@@ -51,14 +52,14 @@ func Count(src []byte) (done, total int, err error) {
 			continue
 		}
 		if match[1] != "" {
-			return 0, 0, fmt.Errorf("nested checkbox at line %d is unsupported", lineNumber+1)
+			return 0, 0, i18n.Errorf("nested checkbox at line %d is unsupported", lineNumber+1)
 		}
 		idMatch := taskIDLine.FindStringSubmatch(line)
 		if idMatch == nil {
-			return 0, 0, fmt.Errorf("task checkbox at line %d has no task ID", lineNumber+1)
+			return 0, 0, i18n.Errorf("task checkbox at line %d has no task ID", lineNumber+1)
 		}
 		if seenIDs[idMatch[1]] {
-			return 0, 0, fmt.Errorf("task ID %q is duplicated at line %d", idMatch[1], lineNumber+1)
+			return 0, 0, i18n.Errorf("task ID %q is duplicated at line %d", idMatch[1], lineNumber+1)
 		}
 		seenIDs[idMatch[1]] = true
 		total++
@@ -67,7 +68,7 @@ func Count(src []byte) (done, total int, err error) {
 		}
 	}
 	if fenceChar != 0 {
-		return 0, 0, fmt.Errorf("unclosed code fence")
+		return 0, 0, i18n.Errorf("unclosed code fence")
 	}
 	return done, total, nil
 }
@@ -75,28 +76,28 @@ func Count(src []byte) (done, total int, err error) {
 // SetDone updates only the checkbox for id after validating the complete task file.
 func SetDone(tasksPath, id string, done bool) error {
 	if strings.TrimSpace(id) == "" || strings.ContainsAny(id, " \t\r\n") {
-		return fmt.Errorf("invalid task ID %q", id)
+		return i18n.Errorf("invalid task ID %q", id)
 	}
 	info, err := os.Lstat(tasksPath)
 	if err != nil {
-		return fmt.Errorf("inspect tasks file: %w", err)
+		return i18n.Errorf("inspect tasks file: %w", err)
 	}
 	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
-		return fmt.Errorf("tasks file is not a regular file")
+		return i18n.Errorf("tasks file is not a regular file")
 	}
 	parentInfo, err := os.Lstat(filepath.Dir(tasksPath))
 	if err != nil {
-		return fmt.Errorf("inspect tasks directory: %w", err)
+		return i18n.Errorf("inspect tasks directory: %w", err)
 	}
 	if parentInfo.Mode()&os.ModeSymlink != 0 || !parentInfo.IsDir() {
-		return fmt.Errorf("tasks directory is not a regular directory")
+		return i18n.Errorf("tasks directory is not a regular directory")
 	}
 	src, err := os.ReadFile(tasksPath)
 	if err != nil {
-		return fmt.Errorf("read tasks file: %w", err)
+		return i18n.Errorf("read tasks file: %w", err)
 	}
 	if !utf8.Valid(src) {
-		return fmt.Errorf("tasks document is not valid UTF-8")
+		return i18n.Errorf("tasks document is not valid UTF-8")
 	}
 
 	chunks := bytes.SplitAfter(src, []byte("\n"))
@@ -144,14 +145,14 @@ func SetDone(tasksPath, id string, done bool) error {
 			continue
 		}
 		if match[1] != "" {
-			return fmt.Errorf("nested checkbox at line %d is unsupported", lineNumber+1)
+			return i18n.Errorf("nested checkbox at line %d is unsupported", lineNumber+1)
 		}
 		idMatch := taskIDLine.FindStringSubmatch(line)
 		if idMatch == nil {
-			return fmt.Errorf("task checkbox at line %d has no task ID", lineNumber+1)
+			return i18n.Errorf("task checkbox at line %d has no task ID", lineNumber+1)
 		}
 		if seenIDs[idMatch[1]] {
-			return fmt.Errorf("task ID %q is duplicated", idMatch[1])
+			return i18n.Errorf("task ID %q is duplicated", idMatch[1])
 		}
 		seenIDs[idMatch[1]] = true
 		if idMatch[1] == id {
@@ -160,10 +161,10 @@ func SetDone(tasksPath, id string, done bool) error {
 		}
 	}
 	if fenceChar != 0 {
-		return fmt.Errorf("unclosed code fence")
+		return i18n.Errorf("unclosed code fence")
 	}
 	if matchedLine < 0 {
-		return fmt.Errorf("task ID %q was not found", id)
+		return i18n.Errorf("task ID %q was not found", id)
 	}
 
 	line := chunks[matchedLine]
@@ -176,27 +177,27 @@ func SetDone(tasksPath, id string, done bool) error {
 	updated := bytes.Join(chunks, nil)
 	file, err := os.CreateTemp(filepath.Dir(tasksPath), ".speclet-task-*")
 	if err != nil {
-		return fmt.Errorf("stage tasks file: %w", err)
+		return i18n.Errorf("stage tasks file: %w", err)
 	}
 	tempPath := file.Name()
 	defer os.Remove(tempPath)
 	if _, err := file.Write(updated); err != nil {
 		_ = file.Close()
-		return fmt.Errorf("write staged tasks file: %w", err)
+		return i18n.Errorf("write staged tasks file: %w", err)
 	}
 	if err := file.Chmod(info.Mode().Perm()); err != nil {
 		_ = file.Close()
-		return fmt.Errorf("set staged tasks file mode: %w", err)
+		return i18n.Errorf("set staged tasks file mode: %w", err)
 	}
 	if err := file.Sync(); err != nil {
 		_ = file.Close()
-		return fmt.Errorf("sync staged tasks file: %w", err)
+		return i18n.Errorf("sync staged tasks file: %w", err)
 	}
 	if err := file.Close(); err != nil {
-		return fmt.Errorf("close staged tasks file: %w", err)
+		return i18n.Errorf("close staged tasks file: %w", err)
 	}
 	if err := os.Rename(tempPath, tasksPath); err != nil {
-		return fmt.Errorf("replace tasks file: %w", err)
+		return i18n.Errorf("replace tasks file: %w", err)
 	}
 	return nil
 }
