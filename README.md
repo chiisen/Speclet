@@ -37,6 +37,8 @@ go build -o /tmp/speclet ./cmd/speclet
 
 ## 快速開始
 
+第一次使用可以跟著[第一個 Speclet 變更](docs/tutorials/first-change.md)操作。AI coding agent 的功能開發流程另見[使用 Speclet 開發功能](docs/tutorials/ai-feature-workflow.md)。
+
 在要管理規格的專案根目錄初始化資料並建立變更：
 
 ```sh
@@ -103,6 +105,8 @@ speclet task undone <change> <task-id>
 speclet archive <name>
 speclet help
 ```
+
+`speclet change list` 會列出進行中的變更和任務進度。加上 `--names-only` 後，每行只輸出一個完整名稱，方便腳本讀取；沒有進行中的變更時不輸出內容。變更名稱含空格時會保留空格。
 
 除 `init` 外，命令會從目前目錄向上尋找最近的 `speclet/`。`init` 只初始化指定路徑（預設目前目錄），不向上搜尋。錯誤寫入 stderr 並以非零結束碼退出；成功摘要寫入 stdout。
 

@@ -75,13 +75,14 @@ const helpText = `Speclet - local-first specification workflow
 Usage:
   speclet init [PATH]
   speclet change new <name>
-  speclet change list
+  speclet change list [--names-only]
   speclet change show <name>
   speclet task done <change> <task-id>
   speclet task undone <change> <task-id>
   speclet archive <name>
   speclet help
 
+Use --names-only to print one active change name per line without task counts.
 Changes use Markdown proposal.md, tasks.md, and specs/<capability>/spec.md files.
 Archive requires every task to be complete and every delta to be valid.
 `
@@ -138,19 +139,24 @@ func runChange(args []string, stdout, stderr io.Writer, cwd string) int {
 		_, _ = fmt.Fprintf(stdout, "Created change %q.\n", args[1])
 		return 0
 	case "list":
-		if len(args) != 1 {
-			return fail(stderr, "usage: speclet change list")
+		namesOnly := len(args) == 2 && args[1] == "--names-only"
+		if len(args) != 1 && !namesOnly {
+			return fail(stderr, "usage: speclet change list [--names-only]")
 		}
 		summaries, err := change.List(root)
 		if err != nil {
 			return fail(stderr, "list changes: %v", err)
 		}
-		if len(summaries) == 0 {
+		if len(summaries) == 0 && !namesOnly {
 			_, _ = fmt.Fprintln(stdout, "No active changes.")
 			return 0
 		}
 		for _, summary := range summaries {
-			_, _ = fmt.Fprintf(stdout, "%s (%d/%d tasks done)\n", summary.Name, summary.Done, summary.Total)
+			if namesOnly {
+				_, _ = fmt.Fprintln(stdout, summary.Name)
+			} else {
+				_, _ = fmt.Fprintf(stdout, "%s (%d/%d tasks done)\n", summary.Name, summary.Done, summary.Total)
+			}
 		}
 		return 0
 	case "show":

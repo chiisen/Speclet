@@ -95,6 +95,51 @@ func TestRunChangeListEmptyAndShowMissing(t *testing.T) {
 	}
 }
 
+func TestRunChangeListNamesOnly(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		args      []string
+		changes   []string
+		want      string
+		wantError bool
+	}{
+		{
+			name:    "sorted names with spaces",
+			args:    []string{"--names-only"},
+			changes: []string{"zeta", "alpha one"},
+			want:    "alpha one\nzeta\n",
+		},
+		{name: "empty list", args: []string{"--names-only"}},
+		{name: "unknown flag", args: []string{"--unknown"}, wantError: true},
+		{name: "extra argument", args: []string{"--names-only", "extra"}, wantError: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cwd := t.TempDir()
+			var stdout, stderr bytes.Buffer
+			if code := Run([]string{"init"}, &stdout, &stderr, cwd); code != 0 {
+				t.Fatalf("init = %d, stderr = %q", code, stderr.String())
+			}
+			for _, name := range tc.changes {
+				if code := Run([]string{"change", "new", name}, &stdout, &stderr, cwd); code != 0 {
+					t.Fatalf("change new %q = %d, stderr = %q", name, code, stderr.String())
+				}
+			}
+			stdout.Reset()
+			stderr.Reset()
+			code := Run(append([]string{"change", "list"}, tc.args...), &stdout, &stderr, cwd)
+			if tc.wantError {
+				if code == 0 || stdout.Len() != 0 || !strings.Contains(stderr.String(), "usage: speclet change list") {
+					t.Fatalf("code = %d, stdout = %q, stderr = %q; want usage on stderr with a nonzero exit", code, stdout.String(), stderr.String())
+				}
+				return
+			}
+			if code != 0 || stdout.String() != tc.want || stderr.Len() != 0 {
+				t.Fatalf("code = %d, stdout = %q, stderr = %q; want success with stdout %q", code, stdout.String(), stderr.String(), tc.want)
+			}
+		})
+	}
+}
+
 func TestRunChangeNewRejectsPathsWithoutEscaping(t *testing.T) {
 	cwd := t.TempDir()
 	var stdout, stderr bytes.Buffer
