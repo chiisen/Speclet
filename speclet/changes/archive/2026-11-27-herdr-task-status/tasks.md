@@ -1,4 +1,4 @@
-- [x] T001 Add and test the machine-readable `change list --json` output without changing existing list modes.
-- [x] T002 Add a read-only Herdr popup mod with project tracking and distinct initialization, CLI, and output error states.
-- [x] T003 Document the optional Herdr integration, installation, and limitations.
-- [x] T004 Run Go and Node tests, formatting/lint checks, inspect the diff, and record actual Herdr UI verification status.
+- [x] T001 新增並測試 `change list --json` 機器可讀輸出，確認既有列表模式不變。
+- [x] T002 新增唯讀 Herdr 彈出面板，追蹤目前專案，並分別呈現未初始化、CLI 和輸出錯誤狀態。
+- [x] T003 撰寫選用 Herdr 整合的用途、安裝方式與限制文件。
+- [x] T004 執行 Go、Node 測試與格式／靜態檢查，檢視差異並記錄 Herdr UI 驗收狀態（桌面畫面未驗證）。
