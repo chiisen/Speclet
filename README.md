@@ -14,7 +14,22 @@ MVP 已採 Go 實作，提供初始化、變更管理、任務追蹤和安全封
 go install ./cmd/speclet
 ```
 
-確認 Go 的 `bin` 目錄已加入 `PATH`，即可執行 `speclet help`。也可以建置獨立執行檔：
+`go install` 會把執行檔安裝到 Go 的 bin 目錄。預設位置是 `$(go env GOPATH)/bin`；若有設定 `GOBIN`，則使用 `GOBIN` 指定的位置。安裝後確認命令可用：
+
+```sh
+command -v speclet
+speclet help
+```
+
+如果 zsh 顯示 `command not found: speclet`，先確認 `go install ./cmd/speclet` 已成功執行。若執行檔已安裝，但 Go 的 bin 目錄尚未加入 `PATH`，可先在目前終端機暫時加入預設目錄：
+
+```sh
+export PATH="$(go env GOPATH)/bin:$PATH"
+```
+
+確認可執行後，將這行加入 `~/.zshrc`，並執行 `source ~/.zshrc`，之後開啟的新終端機也會套用設定。如果有設定 `GOBIN`，請改為將該目錄加入 `PATH`。
+
+也可以建置獨立執行檔：
 
 ```sh
 go build -o /tmp/speclet ./cmd/speclet
