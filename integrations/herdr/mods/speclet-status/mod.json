@@ -1,12 +1,11 @@
 {
   "place": "none",
   "title": "Speclet 任務狀態",
-  "overlay": { "kind": "popup", "at": "top", "offset": 40, "width": 460, "height": 0.7 },
   "palette": [
     {
       "title": "Speclet：任務狀態",
-      "command": "mod.open",
-      "args": { "name": "speclet-status" },
+      "command": "pane.split",
+      "args": { "direction": "right", "mod": "speclet-status" },
       "group": "Speclet",
       "words": "Speclet task status changes progress 變更 任務 進度"
     }

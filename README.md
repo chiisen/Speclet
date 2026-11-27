@@ -119,25 +119,33 @@ JSON 每筆使用小駝峰欄位 `name`、`done` 和 `total`：
 
 ### Herdr 選用整合
 
-`integrations/herdr/` 提供只讀的 Herdr 彈出面板，顯示目前專案的進行中變更和任務完成數。這是獨立選用的 mod，不是 Speclet CLI 的執行期依賴。
+`integrations/herdr/` 提供只讀的 Herdr 任務狀態 pane，顯示目前專案的進行中變更和任務完成數。這是獨立選用的 mod，不是 Speclet CLI 的執行期依賴。
 
-在 Herdr 主機安裝 mod，將 `/path/to/Speclet` 換成此 repo 的位置：
+在 Herdr 主機安裝 mod。macOS／Linux 將 repo 路徑代換為此 repo 的位置：
 
-```sh
-HERDR_APP_HOME="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
+~~~sh
+HERDR_APP_HOME="$HOME/.config/herdr-app"
 mkdir -p "$HERDR_APP_HOME/mods"
 cp -R /path/to/Speclet/integrations/herdr/mods/speclet-status "$HERDR_APP_HOME/mods/"
-```
+~~~
 
-在 Herdr 按 `⌘⇧P` 開啟指令面板，搜尋「Speclet：任務狀態」；也可以執行：
+Windows PowerShell 範例：
 
-```sh
-herdr-app do mod.open '{"name":"speclet-status"}'
-```
+~~~powershell
+$repo = 'D:\path\to\Speclet'
+$herdrHome = if ($env:HERDR_APP_HOME) { $env:HERDR_APP_HOME } else { Join-Path $HOME '.config\herdr-app' }
+$mods = Join-Path $herdrHome 'mods'
+New-Item -ItemType Directory -Force -Path $mods | Out-Null
+Copy-Item -Recurse (Join-Path $repo 'integrations\herdr\mods\speclet-status') $mods
+~~~
 
-目前 Herdr 專案所在的本機或遠端主機需要有可執行的 `speclet` CLI，且該執行環境的 `PATH` 能找到它。若專案尚未初始化，面板會提示執行 `speclet init`。面板只讀取 `speclet/`，不會修改任務、派工或操作 agent。CLI 核心不需要安裝或啟用 Herdr。完整說明見 [`integrations/herdr/README.md`](integrations/herdr/README.md)。
+在 Windows／Linux 按 Ctrl+Shift+P，或在 macOS 按 Command+Shift+P 開啟指令面板，搜尋「Speclet：任務狀態」。也可以執行：
 
-除 `init` 外，命令會從目前目錄向上尋找最近的 `speclet/`。`init` 只初始化指定路徑（預設目前目錄），不向上搜尋。錯誤寫入 stderr 並以非零結束碼退出；成功摘要寫入 stdout。
+~~~sh
+herdr-app do pane.split '{"direction":"right","mod":"speclet-status"}'
+~~~
+
+面板會出現在目前 tab 焦點 pane 的右側，並隨目前 Herdr 專案切換而重新讀取狀態。預設分割比例由 Herdr 決定；可拖曳分隔線調整，狀態面板通常不需要一半寬度。每 10 秒自動更新，也可以按「重新整理」。Herdr 執行環境必須能從 `PATH` 找到 `speclet` CLI；完整安裝與限制見 [`integrations/herdr/README.md`](integrations/herdr/README.md)。
 
 ### 語系設定
 
