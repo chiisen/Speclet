@@ -74,7 +74,7 @@ func TestRunHelpDocumentsMVPCommands(t *testing.T) {
 	if code != 0 || stdout.Len() == 0 || stderr.Len() != 0 {
 		t.Fatalf("help: code=%d stdout=%q stderr=%q", code, stdout.String(), stderr.String())
 	}
-	for _, expected := range []string{"speclet init", "speclet change new", "speclet change list [--names-only]", "speclet task done", "speclet archive", "one active change name per line"} {
+	for _, expected := range []string{"speclet init", "speclet change new", "speclet change list [--names-only | --json]", "speclet task done", "speclet archive", "one active change name per line", "JSON array"} {
 		if !strings.Contains(stdout.String(), expected) {
 			t.Errorf("help output missing %q: %q", expected, stdout.String())
 		}

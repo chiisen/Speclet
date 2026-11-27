@@ -85,6 +85,7 @@ speclet/
 
 ```sh
 speclet change list
+speclet change list --json
 speclet change show payment-checkout
 speclet task done payment-checkout T001
 speclet task done payment-checkout T002
@@ -108,7 +109,33 @@ speclet archive <name>
 speclet help
 ```
 
-`speclet change list` 會列出進行中的變更和任務進度。加上 `--names-only` 後，每行只輸出一個完整名稱，方便腳本讀取；沒有進行中的變更時不輸出內容。變更名稱含空格時會保留空格。
+`speclet change list` 會列出進行中的變更和任務進度。加上 `--names-only` 後，每行只輸出一個完整名稱，方便腳本讀取；加上 `--json` 後則輸出穩定的 JSON 摘要格式。兩個旗標不能同時使用。預設輸出與 `--names-only` 沒有變更；沒有進行中的變更時，前者顯示提示、後者輸出空白，JSON 模式輸出 `[]`。變更名稱含空格或 Unicode 時會保留。
+
+JSON 每筆使用小駝峰欄位 `name`、`done` 和 `total`：
+
+```json
+[{"name":"payment-checkout","done":2,"total":4}]
+```
+
+### Herdr 選用整合
+
+`integrations/herdr/` 提供只讀的 Herdr 彈出面板，顯示目前專案的進行中變更和任務完成數。這是獨立選用的 mod，不是 Speclet CLI 的執行期依賴。
+
+在 Herdr 主機安裝 mod，將 `/path/to/Speclet` 換成此 repo 的位置：
+
+```sh
+HERDR_APP_HOME="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
+mkdir -p "$HERDR_APP_HOME/mods"
+cp -R /path/to/Speclet/integrations/herdr/mods/speclet-status "$HERDR_APP_HOME/mods/"
+```
+
+在 Herdr 按 `⌘⇧P` 開啟指令面板，搜尋「Speclet：任務狀態」；也可以執行：
+
+```sh
+herdr-app do mod.open '{"name":"speclet-status"}'
+```
+
+目前 Herdr 專案所在的本機或遠端主機需要有可執行的 `speclet` CLI，且該執行環境的 `PATH` 能找到它。若專案尚未初始化，面板會提示執行 `speclet init`。面板只讀取 `speclet/`，不會修改任務、派工或操作 agent。CLI 核心不需要安裝或啟用 Herdr。完整說明見 [`integrations/herdr/README.md`](integrations/herdr/README.md)。
 
 除 `init` 外，命令會從目前目錄向上尋找最近的 `speclet/`。`init` 只初始化指定路徑（預設目前目錄），不向上搜尋。錯誤寫入 stderr 並以非零結束碼退出；成功摘要寫入 stdout。
 
