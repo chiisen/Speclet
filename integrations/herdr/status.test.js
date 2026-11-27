@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFile } from "node:fs/promises";
 
 const model = await import("./mods/speclet-status/status.js").catch(() => ({}));
+const manifest = JSON.parse(await readFile(new URL("./mods/speclet-status/mod.json", import.meta.url), "utf8"));
 
 test("status model is available", () => {
   assert.equal(typeof model.statusFromResult, "function");
@@ -52,4 +54,12 @@ test("valid JSON preserves all change names and task counts", () => {
 test("project key includes machine and working directory", () => {
   assert.notEqual(model.projectKey({ cwd: "/work/a", on: null }), model.projectKey({ cwd: "/work/b", on: null }));
   assert.notEqual(model.projectKey({ cwd: "/work/a", on: "remote" }), model.projectKey({ cwd: "/work/a", on: null }));
+});
+
+test("palette opens the status mod in a right split pane", () => {
+  const command = manifest.palette.find(({ title }) => title === "Speclet：任務狀態");
+  assert.ok(command);
+  assert.equal(command.command, "pane.split");
+  assert.deepEqual(command.args, { direction: "right", mod: "speclet-status" });
+  assert.equal("overlay" in manifest, false);
 });

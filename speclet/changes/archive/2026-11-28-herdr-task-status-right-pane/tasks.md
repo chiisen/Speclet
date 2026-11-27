@@ -1,0 +1,4 @@
+- [x] T001 新增 manifest 回歸測試，確認指令以 `pane.split` 在右側開啟 mod，且不設定 popup overlay。
+- [x] T002 更新 Herdr mod manifest 與畫面，移除 popup 專用的設定和關閉按鈕，保留狀態顯示及重新整理。
+- [x] T003 更新 Herdr 安裝／開啟文件及根目錄 CHANGELOG。
+- [x] T004 Node 測試與實際 pane 畫面驗收通過，`git diff --check` 通過並封存 change；`herdr-app check` 在此環境對有效與不存在路徑皆回傳空成功，無法作為有效檢查結果。

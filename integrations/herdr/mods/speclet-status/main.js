@@ -1,6 +1,6 @@
 import { View, div } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
-import { checking, closeOverlay, exec, focused, panes, props, spaces, theme } from "herdr";
+import { checking, exec, focused, panes, spaces, theme } from "herdr";
 import { projectKey, statusFromResult } from "./status.js";
 
 const HAS_SPECLET = 'dir=$(pwd -P) || exit 2; while :; do if [ -e "$dir/speclet" ] || [ -L "$dir/speclet" ]; then exit 0; fi; parent=${dir%/*}; [ -n "$parent" ] || parent=/; [ "$parent" != "$dir" ] || exit 1; dir=$parent; done';
@@ -80,7 +80,6 @@ export default class SpecletStatus extends View {
   render(cx) {
     this.followProject(cx);
     const t = theme();
-    const overlay = props()?.overlay;
     const state = this.state;
     const message = {
       loading: "讀取 Speclet 任務狀態…",
@@ -117,18 +116,6 @@ export default class SpecletStatus extends View {
               .on_click(() => this.refresh(cx))
               .child("重新整理"),
           )
-          .when(Boolean(overlay), (el) =>
-            el.child(
-              div()
-                .px(8)
-                .py(5)
-                .rounded(5)
-                .cursor_pointer()
-                .hover((style) => style.bg(t.hover))
-                .on_click(() => closeOverlay(overlay))
-                .child("關閉"),
-            ),
-          ),
       )
       .child(
         v_flex()
