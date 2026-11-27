@@ -1,25 +1,25 @@
-# Speclet repository agent guide
+# Speclet 專案 Agent 指南
 
-## Use Speclet for feature work
+## 功能開發使用 Speclet
 
-When implementing a new user-visible feature or changing existing behavior in this repository, track the work with this repository's Speclet CLI:
+新增使用者可見功能或修改既有行為時，請用本 repo 的 Speclet CLI 記錄工作進度：
 
-1. Read the repository README for installation and PATH setup. Confirm the CLI is available with `command -v speclet`.
-2. If the repository does not yet contain a `speclet/` data directory, initialize it with `speclet init` from the repository root. If initialization fails or the existing layout is invalid, stop and report the error instead of replacing project data.
-3. Create a change with `speclet change new <name>`. Add a concise rationale to `proposal.md`, acceptance tasks to `tasks.md`, and a delta under `specs/<capability>/spec.md` for each affected capability.
-4. Implement the change and keep task state in sync with `speclet task done` or `speclet task undone`. Add or update tests for behavior changes and run the relevant checks.
-5. Before finishing, review the change with `speclet change show <name>` and `speclet change list`. Archive only after every task is complete and the delta describes the delivered behavior: `speclet archive <name>`.
-6. Report the Speclet change name, archive result, and any checks that could not be run in the final response. Speclet manages local specification files; handle Git commits, branches, and pushes separately under the user's instructions.
+1. 閱讀 README 的安裝與 PATH 設定說明，並用 `command -v speclet` 確認 CLI 可用。
+2. 如果專案還沒有 `speclet/` 資料目錄，請在專案根目錄執行 `speclet init`。若初始化失敗或目錄結構無效，先停止並回報錯誤，不要覆寫現有資料。
+3. 使用 `speclet change new <name>` 建立變更。在 `proposal.md` 說明原因、於 `tasks.md` 列出可驗收的待辦，並在每個受影響功能的 `specs/<capability>/spec.md` 記錄規格差異。
+4. 實作時，用 `speclet task done` 或 `speclet task undone` 更新待辦狀態。若改變程式行為，請新增或更新測試，並執行相關檢查。
+5. 工作完成前，用 `speclet change show <name>` 和 `speclet change list` 檢查變更。所有待辦完成、規格差異也符合實際交付內容後，才執行 `speclet archive <name>`。
+6. 完成時回報 Speclet change 名稱、是否已封存，以及哪些檢查未能執行。Speclet 管理本機規格檔案；Git commit、branch 和 push 依使用者指示另行處理。
 
-Documentation-only edits and mechanical maintenance that do not change product behavior do not need a Speclet change.
+文件修改或例行維護若不改變產品行為，就不必建立 Speclet change。
 
-## Handle defects found during Speclet work
+## 處理 Speclet 工作中發現的缺陷
 
-Use the current task's agreed acceptance criteria and scope to decide what to do.
+按照目前任務已確認的範圍與驗收條件處理：
 
-- **Within scope and affects acceptance.** Fix the defect in the current change, rerun the original failing case, and report the result with the task. A separate issue is unnecessary.
-- **Blocks acceptance and requires a scope expansion.** Tell the user what is blocked and what additional changes are needed. Continue any unaffected work while the user decides whether to expand the scope.
-- **Confirmed and outside the current task's scope, with acceptance unaffected.** Check for an existing issue in `chiisen/Speclet`. If one covers the same defect, report its link. Otherwise, create a GitHub issue with the affected version, minimal reproduction steps, expected and observed results, and impact. Remove secrets and personal data from the report. Continue the original task, report the issue link, and leave the repair schedule to the user. If you cannot check for duplicates or create the issue, include a ready-to-file draft and the reason in the final report.
-- **Unconfirmed observation or improvement idea.** Include it in the task report when it has a concrete impact. Open bug issues for confirmed defects only.
+- **缺陷在目前範圍內，且影響驗收。** 在這次 change 中修復，重跑原本會失敗的案例，並回報結果；不必另開 issue。
+- **缺陷擋住驗收，修復又需要擴大範圍。** 說明目前卡住的部分和所需修改，讓使用者決定是否納入本次工作。其他不受影響的工作可以繼續。
+- **已確認的缺陷與本次無關，也不影響驗收。** 先查 `chiisen/Speclet` 是否已有相同缺陷的 issue。有的話回報連結；沒有的話建立 GitHub issue，寫明受影響版本、最小重現步驟、預期與實際結果，以及影響。不要放入密鑰或個人資料。建立 issue 後繼續原任務，修復時程由使用者決定。如果無法查重或建立 issue，附上可直接提交的草稿，並說明原因。
+- **還沒確認的現象或改進想法。** 若有具體影響，寫進任務回報。確認是缺陷後才開 bug issue。
 
-When a tracked defect is repaired later, record the result of rerunning the original case. For a verified fix in a pull request targeting the default branch, use `Fixes #<issue-number>` to close the issue on merge.
+之後修復已追蹤的缺陷時，記錄重跑原案例的結果。修復已驗證且 PR 以預設分支為目標時，在 PR 使用 `Fixes #<issue-number>`，讓 issue 在合併時關閉。
