@@ -15,7 +15,7 @@ speclet help
 
 如果這個 repository 還沒有 `speclet/` 資料目錄，在根目錄執行 `speclet init`。若已有資料目錄，就先檢查它是否有效，不要初始化覆寫。
 
-當程式碼剛修改但 PATH 上的 `speclet` 還是舊版時，使用目前原始碼執行 `go run ./cmd/speclet ...`，或重新建置並執行新 binary。不要用舊版 CLI 的結果判斷新功能。
+當程式碼剛修改但 PATH 上的 `speclet` 還是舊版時，使用目前原始碼執行 `go run -buildvcs=true ./cmd/speclet ...`，或重新建置並執行新 binary。不要用舊版 CLI 的結果判斷新功能。
 
 ## 2. 建立 Speclet 變更
 

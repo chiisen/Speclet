@@ -11,7 +11,7 @@ MVP 已採 Go 實作，提供初始化、變更管理、任務追蹤和安全封
 需要 Go 1.27 或更新版本。在 repo 根目錄執行：
 
 ```sh
-go install ./cmd/speclet
+go install -buildvcs=true ./cmd/speclet
 ```
 
 `go install` 會把執行檔安裝到 Go 的 bin 目錄。預設位置是 `$(go env GOPATH)/bin`；若有設定 `GOBIN`，則使用 `GOBIN` 指定的位置。安裝後確認命令可用：
@@ -19,9 +19,10 @@ go install ./cmd/speclet
 ```sh
 command -v speclet
 speclet help
+speclet --version
 ```
 
-如果 zsh 顯示 `command not found: speclet`，先確認 `go install ./cmd/speclet` 已成功執行。若執行檔已安裝，但 Go 的 bin 目錄尚未加入 `PATH`，可先在目前終端機暫時加入預設目錄：
+如果 zsh 顯示 `command not found: speclet`，先確認 `go install -buildvcs=true ./cmd/speclet` 已成功執行。若執行檔已安裝，但 Go 的 bin 目錄尚未加入 `PATH`，可先在目前終端機暫時加入預設目錄：
 
 ```sh
 export PATH="$(go env GOPATH)/bin:$PATH"
@@ -32,7 +33,28 @@ export PATH="$(go env GOPATH)/bin:$PATH"
 也可以建置獨立執行檔：
 
 ```sh
-go build -o /tmp/speclet ./cmd/speclet
+go build -buildvcs=true -o /tmp/speclet ./cmd/speclet
+```
+
+### 版本資訊與正式建置
+
+`speclet --version` 及 help 會顯示執行檔版本。一般 Go 建置以 `dev+` 和 Git commit 短 SHA 標示；沒有 VCS revision 時顯示 `dev`。請以 `-buildvcs=true` 建置，確保 Go 將 revision 寫入 build info。
+
+正式版使用 `vMAJOR.MINOR.PATCH` Git tag 作為版本，例如快速演進期間的 `v0.1.0`。在標籤所指向的 commit 建置；沒有精確 tag 時，以下命令會停止，不會產生未標記的正式版本。
+
+Windows PowerShell：
+
+```powershell
+$version = git describe --tags --exact-match HEAD
+if ($LASTEXITCODE -ne 0) { throw '目前 commit 沒有正式版本 tag。' }
+go build -buildvcs=true -ldflags "-X github.com/chiisen/speclet/internal/version.tag=$version" -o speclet.exe ./cmd/speclet
+```
+
+macOS／Linux：
+
+```sh
+version=$(git describe --tags --exact-match HEAD) || exit 1
+go build -buildvcs=true -ldflags "-X github.com/chiisen/speclet/internal/version.tag=$version" -o speclet ./cmd/speclet
 ```
 
 ## 快速開始

@@ -55,6 +55,27 @@ func TestRunHelpDocumentsJSONChangeList(t *testing.T) {
 	}
 }
 
+func TestRunVersionAndHelpShowCurrentVersion(t *testing.T) {
+	var versionOut, versionErr bytes.Buffer
+	if code := Run([]string{"--version"}, &versionOut, &versionErr, t.TempDir()); code != 0 {
+		t.Fatalf("version = %d, stderr = %q", code, versionErr.String())
+	}
+	line := strings.TrimSpace(versionOut.String())
+	if !strings.HasPrefix(line, "Speclet version: ") || len(strings.TrimPrefix(line, "Speclet version: ")) == 0 || versionErr.Len() != 0 {
+		t.Fatalf("version output = %q, stderr = %q", versionOut.String(), versionErr.String())
+	}
+
+	for _, flag := range []string{"-h", "--help"} {
+		var stdout, stderr bytes.Buffer
+		if code := Run([]string{flag}, &stdout, &stderr, t.TempDir()); code != 0 {
+			t.Fatalf("%s = %d, stderr = %q", flag, code, stderr.String())
+		}
+		if !strings.Contains(stdout.String(), line) || !strings.Contains(stdout.String(), "speclet init") || stderr.Len() != 0 {
+			t.Errorf("%s output = %q, want version %q and existing usage", flag, stdout.String(), line)
+		}
+	}
+}
+
 func TestRunChangeNewListAndShow(t *testing.T) {
 	cwd := t.TempDir()
 	var stdout, stderr bytes.Buffer

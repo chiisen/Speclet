@@ -1,0 +1,4 @@
+- [x] T001 新增版本解析及 CLI 旗標的回歸測試，確認測試先失敗。
+- [x] T002 實作 Git tag／Go VCS revision 版本解析及 help、`--version` 輸出。
+- [x] T003 更新開發／正式建置文件與繁體中文 CHANGELOG。
+- [x] T004 執行 Go 測試、一般及 tag 版本建置驗收、diff 檢查並封存。
