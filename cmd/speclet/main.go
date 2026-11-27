@@ -1,16 +1,28 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"os"
 
 	"github.com/chiisen/speclet/internal/cli"
 )
 
 func main() {
-	cwd, err := os.Getwd()
-	if err != nil {
-		_, _ = os.Stderr.WriteString("speclet: get working directory: " + err.Error() + "\n")
-		os.Exit(1)
+	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr, os.Getwd))
+}
+
+func run(args []string, stdout, stderr io.Writer, getwd func() (string, error)) int {
+	if len(args) > 0 {
+		switch args[0] {
+		case "--version", "-h", "--help", "help":
+			return cli.Run(args, stdout, stderr, "")
+		}
 	}
-	os.Exit(cli.Run(os.Args[1:], os.Stdout, os.Stderr, cwd))
+	cwd, err := getwd()
+	if err != nil {
+		_, _ = fmt.Fprintln(stderr, "speclet: get working directory: "+err.Error())
+		return 1
+	}
+	return cli.Run(args, stdout, stderr, cwd)
 }

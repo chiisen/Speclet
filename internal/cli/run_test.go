@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/chiisen/speclet/internal/version"
 )
 
 func TestRunInitCreatesProjectAndWritesSuccessToStdout(t *testing.T) {
@@ -61,7 +63,7 @@ func TestRunVersionAndHelpShowCurrentVersion(t *testing.T) {
 		t.Fatalf("version = %d, stderr = %q", code, versionErr.String())
 	}
 	line := strings.TrimSpace(versionOut.String())
-	if !strings.HasPrefix(line, "Speclet version: ") || len(strings.TrimPrefix(line, "Speclet version: ")) == 0 || versionErr.Len() != 0 {
+	if line != "Speclet version: "+version.String() && line != "Speclet 版本："+version.String() || versionErr.Len() != 0 {
 		t.Fatalf("version output = %q, stderr = %q", versionOut.String(), versionErr.String())
 	}
 
@@ -73,6 +75,50 @@ func TestRunVersionAndHelpShowCurrentVersion(t *testing.T) {
 		if !strings.Contains(stdout.String(), line) || !strings.Contains(stdout.String(), "speclet init") || stderr.Len() != 0 {
 			t.Errorf("%s output = %q, want version %q and existing usage", flag, stdout.String(), line)
 		}
+	}
+}
+
+func TestRunVersionTextUsesTraditionalChinese(t *testing.T) {
+	configDir := t.TempDir()
+	t.Setenv("HOME", configDir)
+	t.Setenv("APPDATA", configDir)
+	t.Setenv("XDG_CONFIG_HOME", configDir)
+	userConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(userConfigDir, "speclet"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	settings := filepath.Join(userConfigDir, "speclet", "config.json")
+	if err := os.WriteFile(settings, []byte(`{"language":"zh-TW"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	if code := Run([]string{"--version"}, &stdout, &stderr, t.TempDir()); code != 0 {
+		t.Fatalf("version = %d, stderr = %q", code, stderr.String())
+	}
+	if !strings.HasPrefix(stdout.String(), "Speclet 版本：") {
+		t.Fatalf("version output = %q, want Traditional Chinese label", stdout.String())
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	if code := Run([]string{"--version", "extra"}, &stdout, &stderr, t.TempDir()); code == 0 {
+		t.Fatal("version with extra arguments succeeded")
+	}
+	if !strings.Contains(stderr.String(), "用法：speclet --version") {
+		t.Fatalf("usage error = %q, want Traditional Chinese usage", stderr.String())
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	if code := Run([]string{"-h"}, &stdout, &stderr, t.TempDir()); code != 0 {
+		t.Fatalf("help = %d, stderr = %q", code, stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "Speclet 版本：") || !strings.Contains(stdout.String(), "用法：") {
+		t.Fatalf("help output = %q, want Traditional Chinese version and usage", stdout.String())
 	}
 }
 
