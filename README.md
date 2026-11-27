@@ -37,7 +37,9 @@ go build -o /tmp/speclet ./cmd/speclet
 
 ## 快速開始
 
-第一次使用可以跟著[第一個 Speclet 變更](docs/tutorials/first-change.md)操作。AI coding agent 的功能開發流程另見[使用 Speclet 開發功能](docs/tutorials/ai-feature-workflow.md)。
+第一次使用可以跟著[第一個 Speclet 變更](docs/tutorials/first-change.md)操作。
+AI coding agent 的功能開發流程另見[使用 Speclet 開發功能](docs/tutorials/ai-feature-workflow.md)。
+只想看任務狀態範例，請參考[用 Speclet 管理任務狀態](docs/tutorials/task-status.md)。
 
 在要管理規格的專案根目錄初始化資料並建立變更：
 
