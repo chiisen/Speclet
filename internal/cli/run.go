@@ -8,23 +8,55 @@ import (
 
 	"github.com/chiisen/speclet/internal/archive"
 	"github.com/chiisen/speclet/internal/change"
+	"github.com/chiisen/speclet/internal/i18n"
 	"github.com/chiisen/speclet/internal/project"
+	"github.com/chiisen/speclet/internal/settings"
 	"github.com/chiisen/speclet/internal/task"
 )
 
-// Run executes one Speclet command and returns its process exit code.
+const englishHelp = `Speclet - local-first specification workflow
+
+Usage:
+  speclet init [PATH]
+  speclet change new <name>
+  speclet change list [--names-only]
+  speclet change show <name>
+  speclet task done <change> <task-id>
+  speclet task undone <change> <task-id>
+  speclet archive <name>
+  speclet config language list
+  speclet config language show
+  speclet config language set <code>
+  speclet help
+
+Use --names-only to print one active change name per line without task counts.
+Changes use Markdown proposal.md, tasks.md, and specs/<capability>/spec.md files.
+Archive requires every task to be complete and every delta to be valid.
+`
+
 func Run(args []string, stdout, stderr io.Writer, cwd string) int {
+	locale, configured, settingErr := settings.Language()
+	if settingErr != nil {
+		locale = i18n.English
+		configured = false
+	}
 	if len(args) == 0 {
-		return fail(stderr, "missing command")
+		return fail(stderr, locale, "missing command")
 	}
 	if args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
-		_, _ = io.WriteString(stdout, helpText)
+		_, _ = fmt.Fprintln(stdout, i18n.Text(locale, englishHelp))
 		return 0
+	}
+	if args[0] == "config" {
+		return runConfig(args[1:], stdout, stderr, locale, configured, settingErr)
+	}
+	if settingErr != nil {
+		return failError(stderr, i18n.English, settingErr)
 	}
 	switch args[0] {
 	case "init":
 		if len(args) > 2 {
-			return fail(stderr, "usage: speclet init [PATH]")
+			return fail(stderr, locale, "usage: speclet init [PATH]")
 		}
 		target := cwd
 		if len(args) == 2 {
@@ -37,152 +69,182 @@ func Run(args []string, stdout, stderr io.Writer, cwd string) int {
 		if _, err := os.Lstat(filepath.Join(target, "speclet")); err == nil {
 			alreadyInitialized = true
 		} else if !os.IsNotExist(err) {
-			return fail(stderr, "inspect speclet directory: %v", err)
+			return failError(stderr, locale, i18n.Errorf("inspect speclet directory: %w", err))
 		}
 		if err := project.Init(target); err != nil {
-			return fail(stderr, "speclet init: %v", err)
+			return failError(stderr, locale, i18n.Errorf("speclet init: %w", err))
 		}
 		if alreadyInitialized {
-			_, _ = fmt.Fprintln(stdout, "Speclet project already initialized.")
+			_, _ = fmt.Fprintln(stdout, i18n.Text(locale, "Speclet project already initialized."))
 		} else {
-			_, _ = fmt.Fprintln(stdout, "Initialized Speclet project.")
+			_, _ = fmt.Fprintln(stdout, i18n.Text(locale, "Initialized Speclet project."))
 		}
 		return 0
 	case "change":
-		return runChange(args[1:], stdout, stderr, cwd)
+		return runChange(args[1:], stdout, stderr, cwd, locale)
 	case "task":
-		return runTask(args[1:], stdout, stderr, cwd)
+		return runTask(args[1:], stdout, stderr, cwd, locale)
 	case "archive":
 		if len(args) != 2 {
-			return fail(stderr, "usage: speclet archive <name>")
+			return fail(stderr, locale, "usage: speclet archive <name>")
 		}
 		root, err := project.FindRoot(cwd)
 		if err != nil {
-			return fail(stderr, "%v", err)
+			return failError(stderr, locale, err)
 		}
 		if err := archive.Run(root, args[1]); err != nil {
-			return fail(stderr, "archive change: %v", err)
+			return failError(stderr, locale, i18n.Errorf("archive change: %w", err))
 		}
-		_, _ = fmt.Fprintf(stdout, "Archived change %q.\n", args[1])
+		_, _ = fmt.Fprintf(stdout, i18n.Text(locale, "Archived change %q.")+"\n", args[1])
 		return 0
 	default:
-		return fail(stderr, "unknown command: %s", args[0])
+		return fail(stderr, locale, "unknown command: %s", args[0])
 	}
 }
 
-const helpText = `Speclet - local-first specification workflow
+func runConfig(args []string, stdout, stderr io.Writer, locale string, configured bool, settingErr error) int {
+	if len(args) < 2 || args[0] != "language" {
+		return fail(stderr, locale, "usage: speclet config language <list|show|set> [code]")
+	}
+	switch args[1] {
+	case "list":
+		if len(args) != 2 {
+			return fail(stderr, locale, "usage: speclet config language <list|show|set> [code]")
+		}
+		_, _ = fmt.Fprintln(stdout, i18n.Text(locale, "Supported languages:"))
+		for _, language := range i18n.SupportedLanguages() {
+			_, _ = fmt.Fprintf(stdout, "%s\t%s\n", language.Code, i18n.Name(language.Code, locale))
+		}
+		return 0
+	case "show":
+		if len(args) != 2 {
+			return fail(stderr, locale, "usage: speclet config language <list|show|set> [code]")
+		}
+		if settingErr != nil {
+			return failError(stderr, i18n.English, settingErr)
+		}
+		name := i18n.Name(locale, locale)
+		if configured {
+			_, _ = fmt.Fprintf(stdout, i18n.Text(locale, "Current language: %s (%s).")+"\n", name, locale)
+		} else {
+			_, _ = fmt.Fprintf(stdout, i18n.Text(locale, "Current language: %s (%s, default).")+"\n", name, locale)
+		}
+		return 0
+	case "set":
+		if len(args) != 3 {
+			return fail(stderr, locale, "usage: speclet config language set <code>")
+		}
+		if err := settings.SetLanguage(args[2]); err != nil {
+			return failError(stderr, locale, err)
+		}
+		_, _ = fmt.Fprintf(stdout, i18n.Text(args[2], "Language preference saved: %s (%s).")+"\n", i18n.Name(args[2], args[2]), args[2])
+		return 0
+	default:
+		return fail(stderr, locale, "usage: speclet config language <list|show|set> [code]")
+	}
+}
 
-Usage:
-  speclet init [PATH]
-  speclet change new <name>
-  speclet change list [--names-only]
-  speclet change show <name>
-  speclet task done <change> <task-id>
-  speclet task undone <change> <task-id>
-  speclet archive <name>
-  speclet help
-
-Use --names-only to print one active change name per line without task counts.
-Changes use Markdown proposal.md, tasks.md, and specs/<capability>/spec.md files.
-Archive requires every task to be complete and every delta to be valid.
-`
-
-func runTask(args []string, stdout, stderr io.Writer, cwd string) int {
+func runTask(args []string, stdout, stderr io.Writer, cwd, locale string) int {
 	if len(args) != 3 || (args[0] != "done" && args[0] != "undone") {
-		return fail(stderr, "usage: speclet task <done|undone> <change> <task-id>")
+		return fail(stderr, locale, "usage: speclet task <done|undone> <change> <task-id>")
 	}
 	root, err := project.FindRoot(cwd)
 	if err != nil {
-		return fail(stderr, "%v", err)
+		return failError(stderr, locale, err)
 	}
 	release, err := project.AcquireWriteLock(root)
 	if err != nil {
-		return fail(stderr, "%v", err)
+		return failError(stderr, locale, err)
 	}
 	detail, err := change.Read(root, args[1])
 	if err != nil {
 		_ = release()
-		return fail(stderr, "find change: %v", err)
+		return failError(stderr, locale, i18n.Errorf("find change: %w", err))
 	}
 	done := args[0] == "done"
 	if err := task.SetDone(detail.TasksPath, args[2], done); err != nil {
 		_ = release()
-		return fail(stderr, "update task: %v", err)
+		return failError(stderr, locale, i18n.Errorf("update task: %w", err))
 	}
 	if err := release(); err != nil {
-		return fail(stderr, "%v", err)
+		return failError(stderr, locale, err)
 	}
-	state := "undone"
+	state := i18n.Text(locale, "undone")
 	if done {
-		state = "done"
+		state = i18n.Text(locale, "done")
 	}
-	_, _ = fmt.Fprintf(stdout, "Marked task %s %s for change %q.\n", args[2], state, detail.Name)
+	_, _ = fmt.Fprintf(stdout, i18n.Text(locale, "Marked task %s %s for change %q.")+"\n", args[2], state, detail.Name)
 	return 0
 }
 
-func runChange(args []string, stdout, stderr io.Writer, cwd string) int {
+func runChange(args []string, stdout, stderr io.Writer, cwd, locale string) int {
 	if len(args) == 0 {
-		return fail(stderr, "usage: speclet change <new|list|show>")
+		return fail(stderr, locale, "usage: speclet change <new|list|show>")
 	}
 	root, err := project.FindRoot(cwd)
 	if err != nil {
-		return fail(stderr, "%v", err)
+		return failError(stderr, locale, err)
 	}
 	switch args[0] {
 	case "new":
 		if len(args) != 2 {
-			return fail(stderr, "usage: speclet change new <name>")
+			return fail(stderr, locale, "usage: speclet change new <name>")
 		}
 		if err := change.Create(root, args[1]); err != nil {
-			return fail(stderr, "create change: %v", err)
+			return failError(stderr, locale, i18n.Errorf("create change: %w", err))
 		}
-		_, _ = fmt.Fprintf(stdout, "Created change %q.\n", args[1])
+		_, _ = fmt.Fprintf(stdout, i18n.Text(locale, "Created change %q.")+"\n", args[1])
 		return 0
 	case "list":
 		namesOnly := len(args) == 2 && args[1] == "--names-only"
 		if len(args) != 1 && !namesOnly {
-			return fail(stderr, "usage: speclet change list [--names-only]")
+			return fail(stderr, locale, "usage: speclet change list [--names-only]")
 		}
 		summaries, err := change.List(root)
 		if err != nil {
-			return fail(stderr, "list changes: %v", err)
+			return failError(stderr, locale, i18n.Errorf("list changes: %w", err))
 		}
 		if len(summaries) == 0 && !namesOnly {
-			_, _ = fmt.Fprintln(stdout, "No active changes.")
+			_, _ = fmt.Fprintln(stdout, i18n.Text(locale, "No active changes."))
 			return 0
 		}
 		for _, summary := range summaries {
 			if namesOnly {
 				_, _ = fmt.Fprintln(stdout, summary.Name)
 			} else {
-				_, _ = fmt.Fprintf(stdout, "%s (%d/%d tasks done)\n", summary.Name, summary.Done, summary.Total)
+				_, _ = fmt.Fprintf(stdout, i18n.Text(locale, "%s (%d/%d tasks done)")+"\n", summary.Name, summary.Done, summary.Total)
 			}
 		}
 		return 0
 	case "show":
 		if len(args) != 2 {
-			return fail(stderr, "usage: speclet change show <name>")
+			return fail(stderr, locale, "usage: speclet change show <name>")
 		}
 		detail, err := change.Read(root, args[1])
 		if err != nil {
-			return fail(stderr, "show change: %v", err)
+			return failError(stderr, locale, i18n.Errorf("show change: %w", err))
 		}
-		_, _ = fmt.Fprintf(stdout, "Change: %s\nProposal: %s\nTasks: %s\n", detail.Name, detail.ProposalPath, detail.TasksPath)
+		_, _ = fmt.Fprintf(stdout, i18n.Text(locale, "Change: %s\nProposal: %s\nTasks: %s\n"), detail.Name, detail.ProposalPath, detail.TasksPath)
 		if len(detail.DeltaPaths) == 0 {
-			_, _ = fmt.Fprintln(stdout, "Delta specs: none")
+			_, _ = fmt.Fprintln(stdout, i18n.Text(locale, "Delta specs: none"))
 		} else {
-			_, _ = fmt.Fprintln(stdout, "Delta specs:")
+			_, _ = fmt.Fprintln(stdout, i18n.Text(locale, "Delta specs:"))
 			for _, path := range detail.DeltaPaths {
 				_, _ = fmt.Fprintf(stdout, "  %s\n", path)
 			}
 		}
 		return 0
 	default:
-		return fail(stderr, "unknown change command: %s", args[0])
+		return fail(stderr, locale, "unknown change command: %s", args[0])
 	}
 }
 
-func fail(stderr io.Writer, format string, args ...any) int {
-	_, _ = fmt.Fprintf(stderr, format+"\n", args...)
+func fail(stderr io.Writer, locale, key string, args ...any) int {
+	_, _ = fmt.Fprintln(stderr, i18n.Text(locale, key, args...))
+	return 1
+}
+
+func failError(stderr io.Writer, locale string, err error) int {
+	_, _ = fmt.Fprintln(stderr, i18n.ErrorText(locale, err))
 	return 1
 }

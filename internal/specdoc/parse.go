@@ -2,9 +2,10 @@ package specdoc
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/chiisen/speclet/internal/i18n"
 )
 
 type Requirement struct {
@@ -28,7 +29,7 @@ type segment struct {
 // ParseSpec locates formal requirement blocks while retaining all source bytes.
 func ParseSpec(src []byte) (Document, error) {
 	if !utf8.Valid(src) {
-		return Document{}, fmt.Errorf("formal spec is not valid UTF-8")
+		return Document{}, i18n.Errorf("formal spec is not valid UTF-8")
 	}
 	var doc Document
 	var segments []segment
@@ -100,16 +101,16 @@ func ParseSpec(src []byte) (Document, error) {
 		marker, markerName := structuralMarker(title)
 		if marker != "" {
 			if marker == "Requirement" && level != 2 {
-				return Document{}, fmt.Errorf("line %d: Requirement heading must use level 2", lineNumber)
+				return Document{}, i18n.Errorf("line %d: Requirement heading must use level 2", lineNumber)
 			}
 			if marker == "Scenario" && level != 3 {
-				return Document{}, fmt.Errorf("line %d: Scenario heading must use level 3", lineNumber)
+				return Document{}, i18n.Errorf("line %d: Scenario heading must use level 3", lineNumber)
 			}
 			if markerName == "" {
-				return Document{}, fmt.Errorf("line %d: %s name is empty", lineNumber, marker)
+				return Document{}, i18n.Errorf("line %d: %s name is empty", lineNumber, marker)
 			}
 			if marker == "Scenario" && currentRequirement == "" {
-				return Document{}, fmt.Errorf("line %d: Scenario is outside a Requirement", lineNumber)
+				return Document{}, i18n.Errorf("line %d: Scenario is outside a Requirement", lineNumber)
 			}
 		}
 		if isHeading && level <= 2 {
@@ -117,7 +118,7 @@ func ParseSpec(src []byte) (Document, error) {
 			paragraphActive = false
 			if marker == "Requirement" {
 				if seenNames[markerName] {
-					return Document{}, fmt.Errorf("line %d: duplicate Requirement %q", lineNumber, markerName)
+					return Document{}, i18n.Errorf("line %d: duplicate Requirement %q", lineNumber, markerName)
 				}
 				seenNames[markerName] = true
 				seenRequirement = true
@@ -133,7 +134,7 @@ func ParseSpec(src []byte) (Document, error) {
 		current.Write(rawLine)
 	}
 	if fenceChar != 0 {
-		return Document{}, fmt.Errorf("unclosed code fence")
+		return Document{}, i18n.Errorf("unclosed code fence")
 	}
 	flush()
 	doc.segments = segments

@@ -2,9 +2,10 @@ package specdoc
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/chiisen/speclet/internal/i18n"
 )
 
 type OperationKind int
@@ -24,7 +25,7 @@ type Operation struct {
 // ParseDelta parses the explicitly marked delta sections and requirement blocks.
 func ParseDelta(src []byte) ([]Operation, error) {
 	if !utf8.Valid(src) {
-		return nil, fmt.Errorf("delta is not valid UTF-8")
+		return nil, i18n.Errorf("delta is not valid UTF-8")
 	}
 	var operations []Operation
 	var current *Operation
@@ -41,7 +42,7 @@ func ParseDelta(src []byte) ([]Operation, error) {
 			return nil
 		}
 		if seenNames[current.Name] {
-			return fmt.Errorf("duplicate delta Requirement %q", current.Name)
+			return i18n.Errorf("duplicate delta Requirement %q", current.Name)
 		}
 		seenNames[current.Name] = true
 		current.Raw = append([]byte(nil), raw.Bytes()...)
@@ -78,13 +79,13 @@ func ParseDelta(src []byte) ([]Operation, error) {
 		marker, name := structuralMarker(title)
 		if marker != "" {
 			if marker == "Requirement" && level != 3 {
-				return nil, fmt.Errorf("line %d: delta Requirement heading must use level 3", lineNumber)
+				return nil, i18n.Errorf("line %d: delta Requirement heading must use level 3", lineNumber)
 			}
 			if marker == "Scenario" && level != 4 {
-				return nil, fmt.Errorf("line %d: delta Scenario heading must use level 4", lineNumber)
+				return nil, i18n.Errorf("line %d: delta Scenario heading must use level 4", lineNumber)
 			}
 			if name == "" {
-				return nil, fmt.Errorf("line %d: %s name is empty", lineNumber, marker)
+				return nil, i18n.Errorf("line %d: %s name is empty", lineNumber, marker)
 			}
 		}
 		if isHeading && level == 2 {
@@ -99,7 +100,7 @@ func ParseDelta(src []byte) ([]Operation, error) {
 			case "REMOVED":
 				section = Removed
 			default:
-				return nil, fmt.Errorf("line %d: unknown delta section %q", lineNumber, title)
+				return nil, i18n.Errorf("line %d: unknown delta section %q", lineNumber, title)
 			}
 			paragraphActive = false
 			continue
@@ -125,7 +126,7 @@ func ParseDelta(src []byte) ([]Operation, error) {
 		}
 		if marker == "Requirement" {
 			if section == 0 {
-				return nil, fmt.Errorf("line %d: Requirement is outside a delta section", lineNumber)
+				return nil, i18n.Errorf("line %d: Requirement is outside a delta section", lineNumber)
 			}
 			if err := flush(); err != nil {
 				return nil, err
@@ -136,7 +137,7 @@ func ParseDelta(src []byte) ([]Operation, error) {
 			continue
 		}
 		if marker == "Scenario" && current == nil {
-			return nil, fmt.Errorf("line %d: Scenario is outside a Requirement", lineNumber)
+			return nil, i18n.Errorf("line %d: Scenario is outside a Requirement", lineNumber)
 		}
 		if strings.TrimSpace(line) == "" || isHeading || isMarkdownBlockStart(line) {
 			paragraphActive = false
@@ -151,7 +152,7 @@ func ParseDelta(src []byte) ([]Operation, error) {
 		}
 	}
 	if fenceChar != 0 {
-		return nil, fmt.Errorf("unclosed code fence")
+		return nil, i18n.Errorf("unclosed code fence")
 	}
 	if err := flush(); err != nil {
 		return nil, err
@@ -163,11 +164,11 @@ func ParseDelta(src []byte) ([]Operation, error) {
 func ApplyDelta(spec, delta []byte) ([]byte, error) {
 	doc, err := ParseSpec(spec)
 	if err != nil {
-		return nil, fmt.Errorf("parse formal spec: %w", err)
+		return nil, i18n.Errorf("parse formal spec: %w", err)
 	}
 	operations, err := ParseDelta(delta)
 	if err != nil {
-		return nil, fmt.Errorf("parse delta: %w", err)
+		return nil, i18n.Errorf("parse delta: %w", err)
 	}
 	existing := make(map[string]bool, len(doc.Requirements))
 	for _, requirement := range doc.Requirements {
@@ -176,10 +177,10 @@ func ApplyDelta(spec, delta []byte) ([]byte, error) {
 	byName := make(map[string]Operation, len(operations))
 	for _, operation := range operations {
 		if operation.Kind == Added && existing[operation.Name] {
-			return nil, fmt.Errorf("cannot add Requirement %q: it already exists", operation.Name)
+			return nil, i18n.Errorf("cannot add Requirement %q: it already exists", operation.Name)
 		}
 		if (operation.Kind == Modified || operation.Kind == Removed) && !existing[operation.Name] {
-			return nil, fmt.Errorf("cannot %s Requirement %q: it does not exist", operationName(operation.Kind), operation.Name)
+			return nil, i18n.Errorf("cannot %s Requirement %q: it does not exist", operationName(operation.Kind), operation.Name)
 		}
 		byName[operation.Name] = operation
 	}
@@ -212,7 +213,7 @@ func ApplyDelta(spec, delta []byte) ([]byte, error) {
 	}
 	result := output.Bytes()
 	if _, err := ParseSpec(result); err != nil {
-		return nil, fmt.Errorf("delta produces invalid formal spec: %w", err)
+		return nil, i18n.Errorf("delta produces invalid formal spec: %w", err)
 	}
 	return result, nil
 }

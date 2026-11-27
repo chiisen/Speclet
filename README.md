@@ -112,4 +112,16 @@ speclet help
 
 除 `init` 外，命令會從目前目錄向上尋找最近的 `speclet/`。`init` 只初始化指定路徑（預設目前目錄），不向上搜尋。錯誤寫入 stderr 並以非零結束碼退出；成功摘要寫入 stdout。
 
+### 語系設定
+
+Speclet 預設以英文顯示。可先查詢支援語系，再設定繁體中文；設定會保存在目前電腦的使用者設定目錄，套用到之後執行的所有專案：
+
+```sh
+speclet config language list
+speclet config language show
+speclet config language set zh-TW
+```
+
+目前支援 `en`（English）和 `zh-TW`（繁體中文）。要切回英文時執行 `speclet config language set en`。未列出的語系代碼會被拒絕，不會改動既有設定。
+
 Speclet 不會操作 Git commit、branch 或 push，也不會呼叫 AI 模型。AI coding agent 可透過這些檔案和命令參與工作流程。
