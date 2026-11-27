@@ -36,6 +36,10 @@ export PATH="$(go env GOPATH)/bin:$PATH"
 go build -buildvcs=true -o /tmp/speclet ./cmd/speclet
 ```
 
+### 更新全域安裝版本
+
+在 Speclet 原始碼目錄重新執行 `go install -buildvcs=true ./cmd/speclet`，會更新 Go 全域執行檔目錄中的 Speclet。安裝位置是 `GOBIN`；未設定時為 `GOPATH/bin`。執行 `command -v speclet` 確認終端機實際找到的檔案；若 zsh 仍使用快取的舊位置，執行 `rehash` 後再確認。`/tmp/speclet` 是獨立的暫存建置檔，不會更新全域安裝版本。
+
 ### 版本資訊與正式建置
 
 `speclet --version` 及 help 會顯示執行檔版本。一般 Go 建置以 `dev+` 和 Git commit 短 SHA 標示；沒有 VCS revision 時顯示 `dev`。請以 `-buildvcs=true` 建置，確保 Go 將 revision 寫入 build info。
@@ -47,14 +51,18 @@ Windows PowerShell：
 ```powershell
 $version = git describe --tags --exact-match HEAD
 if ($LASTEXITCODE -ne 0) { throw '目前 commit 沒有正式版本 tag。' }
-go build -buildvcs=true -ldflags "-X github.com/chiisen/speclet/internal/version.tag=$version" -o speclet.exe ./cmd/speclet
+if ($version -cnotmatch '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw "標籤不是 vMAJOR.MINOR.PATCH 語意化版本：$version" }
+New-Item -ItemType Directory -Force bin | Out-Null
+go build -buildvcs=true -ldflags "-X github.com/chiisen/speclet/internal/version.tag=$version" -o "bin\speclet-$version.exe" ./cmd/speclet
 ```
 
 macOS／Linux：
 
 ```sh
 version=$(git describe --tags --exact-match HEAD) || exit 1
-go build -buildvcs=true -ldflags "-X github.com/chiisen/speclet/internal/version.tag=$version" -o speclet ./cmd/speclet
+printf '%s\n' "$version" | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' || { printf 'tag must be vMAJOR.MINOR.PATCH: %s\n' "$version" >&2; exit 1; }
+mkdir -p ./bin
+go build -buildvcs=true -ldflags "-X github.com/chiisen/speclet/internal/version.tag=$version" -o "./bin/speclet-$version" ./cmd/speclet
 ```
 
 ## 快速開始

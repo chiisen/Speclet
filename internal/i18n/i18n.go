@@ -50,8 +50,10 @@ func Name(code, displayLanguage string) string {
 }
 
 var traditionalChinese = map[string]string{
+	"Speclet version: %s":                                  "Speclet 版本：%s",
 	"missing command":                                      "缺少命令",
 	"usage: speclet init [PATH]":                           "用法：speclet init [PATH]",
+	"usage: speclet --version":                             "用法：speclet --version",
 	"inspect speclet directory":                            "檢查 speclet 目錄失敗",
 	"speclet init":                                         "初始化 Speclet 專案失敗",
 	"Speclet project already initialized.":                 "Speclet 專案已初始化。",

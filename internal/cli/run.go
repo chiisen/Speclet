@@ -50,11 +50,11 @@ func Run(args []string, stdout, stderr io.Writer, cwd string) int {
 		if len(args) != 1 {
 			return fail(stderr, locale, "usage: speclet --version")
 		}
-		_, _ = fmt.Fprintf(stdout, "Speclet version: %s\n", version.String())
+		_, _ = fmt.Fprintf(stdout, i18n.Text(locale, "Speclet version: %s")+"\n", version.String())
 		return 0
 	}
 	if args[0] == "help" || args[0] == "-h" || args[0] == "--help" {
-		_, _ = fmt.Fprintf(stdout, "Speclet version: %s\n", version.String())
+		_, _ = fmt.Fprintf(stdout, i18n.Text(locale, "Speclet version: %s")+"\n", version.String())
 		_, _ = fmt.Fprintln(stdout, i18n.Text(locale, englishHelp))
 		return 0
 	}

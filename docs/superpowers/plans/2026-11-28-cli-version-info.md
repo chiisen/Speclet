@@ -29,7 +29,7 @@
 - VCS revision 短於七字元：不得切片越界。
 - `--version` 不應讀寫專案資料，也不應依賴目前目錄或 Git 可執行檔。
 - help 必須包含版本，原有命令與語系文字維持可見。
-- 正式建置命令必須拒絕沒有精確 tag 的 HEAD，避免無意中產生錯誤 release 版本。
+- 正式建置命令必須拒絕沒有精確 tag 或格式不符 `vMAJOR.MINOR.PATCH` 的 HEAD，避免無意中產生錯誤 release 版本。
 
 ---
 
@@ -89,4 +89,3 @@
 - [x] 使用 tag linker flag 建置正式版本並驗證輸出；以一般建置驗證開發 SHA。
 - [x] 執行 `git diff --check`，確認 `speclet change show`、`speclet change list`。
 - [x] 全部待辦完成且正式規格符合交付後封存 change。
-
